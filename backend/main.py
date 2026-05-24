@@ -5,8 +5,12 @@ from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from .utils.downloader import download_youtube_audio
-from .services.pipeline import Pipeline
+try:
+    from .utils.downloader import download_youtube_audio
+    from .services.pipeline import Pipeline
+except ImportError:
+    from utils.downloader import download_youtube_audio
+    from services.pipeline import Pipeline
 
 app = FastAPI(title="AI Music Analysis API")
 pipeline = Pipeline()

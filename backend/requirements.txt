@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+yt-dlp
+librosa
+numpy
+soundfile
+static-ffmpeg
+demucs
+python-multipart
+essentia-tensorflow
+torch --index-url https://download.pytorch.org/whl/cpu
+pytest
+pytest-asyncio
+httpx
