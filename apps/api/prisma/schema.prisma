@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VISITOR
+  CLIENT
+  GUARD
+  SUPERVISOR
+  OPERATIONS
+  SUPER_ADMIN
+}
+
+enum ServiceType {
+  STATIC_GUARDING
+  EVENT_SECURITY
+  VIP_ESCORT
+  PATROL_SERVICES
+  CCTV_MONITORING
+  OTHER
+}
+
+enum ShiftCoverage {
+  DAY
+  NIGHT
+  TWENTY_FOUR_HOUR
+}
+
+enum RequestStatus {
+  NEW
+  UNDER_REVIEW
+  SITE_ASSESSMENT_SCHEDULED
+  QUOTATION_SENT
+  ACCEPTED
+  CONTRACT_ACTIVE
+  REJECTED
+  CANCELLED
+}
+
+enum CaseType {
+  COMPLAINT
+  COMPLIMENT
+  SUGGESTION
+  GENERAL_FEEDBACK
+}
+
+enum CaseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CaseStatus {
+  SUBMITTED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLUTION_PROPOSED
+  CLOSED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  EARLY_DEPARTURE
+  ABSENT
+  UNVERIFIED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  fullName         String
+  role             Role      @default(CLIENT)
+  phone            String?
+  organizationName String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  clientProfile    Client?
+  employeeProfile  Employee?
+  assignedCases    Case[]     @relation("CaseAssignee")
+  caseMessages     CaseMessage[]
+  auditLogs        AuditLog[]
+  requestStatusLogs RequestStatusHistory[]
+  caseStatusLogs   CaseStatusHistory[]
+  attendanceCorrections AttendanceCorrection[] @relation("ApprovedBy")
+}
+
+model Client {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName      String
+  contactPerson    String
+  phone            String
+  email            String
+  address          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sites            Site[]
+  serviceRequests  ServiceRequest[]
+  cases            Case[]
+}
+
+model Employee {
+  id             String    @id @default(uuid())
+  userId         String?   @unique
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  employeeNumber String    @unique
+  fullName       String
+  phone          String
+  email          String?
+  status         String    @default("ACTIVE") // ACTIVE, ON_LEAVE, TERMINATED
+  hireDate       DateTime  @default(now())
+  photoUrl       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  shifts         Shift[]
+  attendance     AttendanceRecord[]
+  supervisedSites SiteSupervisorAssignment[]
+}
+
+model Site {
+  id             String   @id @default(uuid())
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name           String
+  address        String
+  city           String
+  latitude       Float?
+  longitude      Float?
+  geofenceRadius Float    @default(100.0) // in meters
+  qrSecret       String   @default(uuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  supervisors    SiteSupervisorAssignment[]
+  shifts         Shift[]
+  cases          Case[]
+  attendanceRecords AttendanceRecord[]
+}
+
+model SiteSupervisorAssignment {
+  id           String   @id @default(uuid())
+  siteId       String
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  supervisorId String
+  supervisor   Employee @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  assignedAt   DateTime @default(now())
+
+  @@unique([siteId, supervisorId])
+}
+
+model ServiceRequest {
+  id                   String            @id @default(uuid())
+  referenceNumber      String            @unique // e.g., SR-2026-00123
+  contactName          String
+  organizationName     String?
+  phone                String
+  email                String?
+  serviceType          ServiceType
+  siteAddress          String
+  city                 String
+  guardCount           Int               @default(1)
+  shiftCoverage        ShiftCoverage     @default(DAY)
+  isArmed              Boolean           @default(false)
+  startDate            DateTime?
+  duration             String            @default("1 month")
+  additionalDetails    String?
+  preferredContact     String?
+  status               RequestStatus     @default(NEW)
+  clientId             String?
+  client               Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  quotations           Quotation[]
+  history              RequestStatusHistory[]
+}
+
+model RequestStatusHistory {
+  id               String         @id @default(uuid())
+  requestId        String
+  request          ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  fromStatus       RequestStatus?
+  toStatus         RequestStatus
+  changedById      String?
+  changedBy        User?          @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  notes            String?
+  createdAt        DateTime       @default(now())
+}
+
+model Quotation {
+  id             String         @id @default(uuid())
+  requestId      String
+  request        ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  amount         Float
+  fileUrl        String?
+  notes          String?
+  status         String         @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt      DateTime       @default(now())
+}
+
+model Case {
+  id                   String            @id @default(uuid())
+  referenceNumber      String            @unique // e.g., CS-2026-00123
+  type                 CaseType          @default(COMPLAINT)
+  severity             CaseSeverity      @default(MEDIUM)
+  status               CaseStatus        @default(SUBMITTED)
+  subject              String
+  description          String
+  rating               Int?              // 1 to 5
+  responseDeadline     DateTime?
+  clientId             String?
+  client               Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  siteId               String?
+  site                 Site?             @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  assignedToId         String?
+  assignedTo           User?             @relation("CaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  messages             CaseMessage[]
+  attachments          CaseAttachment[]
+  history              CaseStatusHistory[]
+}
+
+model CaseMessage {
+  id          String   @id @default(uuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  senderId    String?
+  sender      User?    @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  message     String
+  isInternal  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model CaseAttachment {
+  id          String   @id @default(uuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  createdAt   DateTime @default(now())
+}
+
+model CaseStatusHistory {
+  id          String     @id @default(uuid())
+  caseId      String
+  case        Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fromStatus  CaseStatus?
+  toStatus    CaseStatus
+  changedById String?
+  changedBy   User?      @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  notes       String?
+  createdAt   DateTime   @default(now())
+}
+
+model Shift {
+  id          String   @id @default(uuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  startTime   DateTime // Stored in UTC
+  endTime     DateTime // Stored in UTC
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  attendance  AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id              String           @id @default(uuid())
+  shiftId         String
+  shift           Shift            @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  siteId          String
+  site            Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  checkInTime     DateTime?        // Authoritative server timestamp
+  checkOutTime    DateTime?
+  status          AttendanceStatus @default(UNVERIFIED)
+  checkInLat      Float?
+  checkInLng      Float?
+  checkInAccuracy Float?
+  checkOutLat     Float?
+  checkOutLng     Float?
+  qrVerified      Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  corrections     AttendanceCorrection[]
+}
+
+model AttendanceCorrection {
+  id                 String           @id @default(uuid())
+  attendanceRecordId String
+  attendanceRecord   AttendanceRecord @relation(fields: [attendanceRecordId], references: [id], onDelete: Cascade)
+  approvedById       String
+  approvedBy         User             @relation("ApprovedBy", fields: [approvedById], references: [id])
+  originalStatus     AttendanceStatus
+  correctedStatus    AttendanceStatus
+  reason             String
+  createdAt          DateTime         @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  resource   String
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}

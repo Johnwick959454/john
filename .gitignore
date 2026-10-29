@@ -1,8 +1,6 @@
-backend/venv/
-__pycache__/
-*.pyc
-node_modules/
-dist/
+node_modules
+dist
 .env
-uploads/
-processed/
+*.log
+.DS_Store
+coverage

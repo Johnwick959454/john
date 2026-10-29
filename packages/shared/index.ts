@@ -1,0 +1,74 @@
+export enum UserRole {
+  VISITOR = 'VISITOR',
+  CLIENT = 'CLIENT',
+  GUARD = 'GUARD',
+  SUPERVISOR = 'SUPERVISOR',
+  OPERATIONS = 'OPERATIONS',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
+
+export enum ServiceType {
+  STATIC_GUARDING = 'STATIC_GUARDING',
+  EVENT_SECURITY = 'EVENT_SECURITY',
+  VIP_ESCORT = 'VIP_ESCORT',
+  PATROL_SERVICES = 'PATROL_SERVICES',
+  CCTV_MONITORING = 'CCTV_MONITORING',
+  OTHER = 'OTHER',
+}
+
+export enum ShiftCoverage {
+  DAY = 'DAY',
+  NIGHT = 'NIGHT',
+  TWENTY_FOUR_HOUR = 'TWENTY_FOUR_HOUR',
+}
+
+export enum ServiceRequestStatus {
+  NEW = 'NEW',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  SITE_ASSESSMENT_SCHEDULED = 'SITE_ASSESSMENT_SCHEDULED',
+  QUOTATION_SENT = 'QUOTATION_SENT',
+  ACCEPTED = 'ACCEPTED',
+  CONTRACT_ACTIVE = 'CONTRACT_ACTIVE',
+  REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum CaseType {
+  COMPLAINT = 'COMPLAINT',
+  COMPLIMENT = 'COMPLIMENT',
+  SUGGESTION = 'SUGGESTION',
+  GENERAL_FEEDBACK = 'GENERAL_FEEDBACK',
+}
+
+export enum CaseSeverity {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL',
+}
+
+export enum CaseStatus {
+  SUBMITTED = 'SUBMITTED',
+  ASSIGNED = 'ASSIGNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  RESOLUTION_PROPOSED = 'RESOLUTION_PROPOSED',
+  CLOSED = 'CLOSED',
+}
+
+export enum AttendanceStatus {
+  PRESENT = 'PRESENT',
+  LATE = 'LATE',
+  EARLY_DEPARTURE = 'EARLY_DEPARTURE',
+  ABSENT = 'ABSENT',
+  UNVERIFIED = 'UNVERIFIED',
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  phone?: string;
+  organizationName?: string;
+  createdAt: string;
+}
