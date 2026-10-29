@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #003C35;
+  --color-primary-dark: #092824;
+  --color-accent: #C9A04A;
+  --color-bg-light: #F4F6F4;
+  --color-text-main: #24332F;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
